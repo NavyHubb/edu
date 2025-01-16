@@ -17,10 +17,9 @@ kubectl delete -f deploy.yaml
 
 ## 서비스용 배포 
 kubectl apply -f deploy.yaml
-
 ```
 ## 2. clusterIP
-clusterip-svc.yaml
+- clusterip-svc.yaml
 ```yaml
 apiVersion: v1
 kind: Service
@@ -34,7 +33,6 @@ spec:
       port: 80
       targetPort: 80
   type: ClusterIP
-
 ```
 ```sh
 
@@ -45,11 +43,11 @@ kubectl apply -f clusterip-svc.yaml
 kubectl get service
 kubectl get svc
 
-## 가상의 서비스 ip가 생성되었다 
-root@master01:~/kubernetes/lecture2# kubectl get svc
-NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
-kubernetes   ClusterIP   10.43.0.1    <none>        443/TCP   9d
-nginx-svc    ClusterIP   10.43.88.2   <none>        80/TCP    4s
+## 가상의 서비스 ip가 생성
+#root@master01:~/kubernetes/lecture2# kubectl get svc
+#NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+#kubernetes   ClusterIP   10.43.0.1    <none>        443/TCP   9d
+#nginx-svc    ClusterIP   10.43.88.2   <none>        80/TCP    4s
 
 
 ## master01에서 다음과 같이 cluster-ip로  조회가 가능해진다 
@@ -89,7 +87,7 @@ kubectl describe service nginx-svc
 ```
 
 ## 3. nodePort
-nodeport-svc.yaml
+- nodeport-svc.yaml
 ```yaml
 apiVersion: v1
 kind: Service
@@ -104,44 +102,55 @@ spec:
       port: 80
       targetPort: 80
   type: NodePort
-
 ```
-```bash
+```sh
 
 kubectl apply -f nodeport-svc.yaml
 
 kubectl get svc
-root@master01:~/kubernetes/lecture2# kubectl get svc
-NAME         TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)        AGE
-kubernetes   ClusterIP   10.43.0.1      <none>        443/TCP        9d
-nginx-svc    NodePort    10.43.148.76   <none>        80:30001/TCP   114s
+
+#root@master01:~/kubernetes/lecture2# kubectl get svc
+#NAME         TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)        AGE
+#kubernetes   ClusterIP   10.43.0.1      <none>        443/TCP        9d
+#nginx-svc    NodePort    10.43.148.76   <none>        80:30001/TCP   114s
 # podd의 속한  node 확인한다 
 kubectl get pod -o wide
 kubectl get nodes -o wide
 
-# Master Node에서 node의 ip로 조회 해본다( cluseter 외부에서 조회 가능)
-curl 172.27.0.179:30001 ## master01
-curl 172.27.0.136:30001  ## worker01
-curl 172.27.0.48:30001   ## worker02
-
-# kt cloud 콘솔 접속 
-# 방화벽 30001 번 오픈 (master01,worker01,worker02)
-# GNB내 : Server > Networking > 공인IP 선택 > 접속설정 클릭 
-  a. 포트를 범위로 설정 선택
-  b. 공인 IP에 할당된 서버 선택 > start, end에 30001 입력 > TCP 선택 후 저장 
-# https://cloud.kt.com/console/g/networklist#
-# worker node 공인IP 로 접속, 웹 브라우저로 접속
-curl http://211.253.25.128:30001  ## master01
-curl http://211.253.30.100:30001 ## worker01
-curl http://211.253.8.141:30001  ## worker02
-
-kubectl delete -f nodeport-svc.yaml
+```
+## 3.1 방화벽 오픈
+```
+kt cloud 외부 접속 포트 (30001) 오픈 
+ - 대상 서버 : master01, worker01, worker02 공인IP
+ - lecture0 VM생성 : d. 접속 설정 (방화벽 오픈) 참고
 ```
 ![노드포트 방화벽 오픈](/lecture2/img/lecture2-fw.png)
 ![노드포트 방화벽 오픈](/lecture2/img/lecture2-fw-30001.png)
 
+```sh
+
+# 각자 master, worker 서버 사설 ip로 변경 후 조회 : Cluseter 외부에서 조회 가능
+curl 172.27.0.179:30001 
+curl 172.27.0.136:30001  
+curl 172.27.0.48:30001    
+
+# 각자 master, worker 서버 공인 ip로 변경 후 테스트
+curl http://211.253.25.128:30001  
+curl http://211.253.30.100:30001   
+curl http://211.253.8.141:30001
+```
+- #### 서비스 확인 : 브라우저에서 
+  - http://211.253.25.128:30001
+  - http://211.253.25.128:30001
+  
+## 3.2 nodePort 삭제  
+```bash
+
+kubectl delete -f nodeport-svc.yaml
+```
+
 ## 4. LoadBalancer
-loadbalancer-svc.yaml
+- loadbalancer-svc.yaml
 ```yaml
 apiVersion: v1
 kind: Service
@@ -160,16 +169,16 @@ spec:
 
 kubectl apply -f loadbalancer-svc.yaml
 ## EXTERNAL-IP pending 확인 : cluster L7 매핑 없어서.
-root@master01:~/kubernetes/lecture2# kubectl get svc
-NAME         TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
-kubernetes   ClusterIP      10.43.0.1       <none>        443/TCP        9d
-nginx-svc    LoadBalancer   10.43.140.246   <pending>     80:30442/TCP   14s
+#root@master01:~/kubernetes/lecture2# kubectl get svc
+#NAME         TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+#kubernetes   ClusterIP      10.43.0.1       <none>        443/TCP        9d
+#nginx-svc    LoadBalancer   10.43.140.246   <pending>     80:30442/TCP   14s
 ```
 
 ## externalName
-- google로 테스트
+google로 테스트
 
-external-svc.yaml
+- external-svc.yaml
 ```yaml
 apiVersion: v1
 kind: Service
@@ -185,10 +194,10 @@ kubectl apply -f external-svc.yaml
 
 kubectl get svc
 # EXTERNAL-IP에 google.com 설정 확인
-root@master01:~/kubernetes/lecture2# kubectl get svc
-NAME            TYPE           CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
-externalname1   ExternalName   <none>       google.com    <none>    6m12s
-kubernetes      ClusterIP      10.43.0.1    <none>        443/TCP   9d
+#root@master01:~/kubernetes/lecture2# kubectl get svc
+#NAME            TYPE           CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+#externalname1   ExternalName   <none>       google.com    <none>    6m12s
+#kubernetes      ClusterIP      10.43.0.1    <none>        443/TCP   9d
 
 
 ## test pod 내에서 curl 확인 
@@ -203,7 +212,7 @@ curl -L externalname1.default.svc.cluster.local
 
 ```
 
-# clear
+# 5. 서비스 clear
 ```sh
 
 kubectl delete -f loadbalancer-svc.yaml
@@ -211,5 +220,4 @@ kubectl delete -f deploy.yaml
 kubectl delete -f external-svc.yaml
 kubectl delete -f nodeport-svc.yaml
 kubectl delete -fclusterip-svc.yaml
-
 ```

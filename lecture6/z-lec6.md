@@ -41,10 +41,9 @@ spec:
       - name: log-volume
         emptyDir: {}
 ```
-```sh 
+```bash 
 
 kubectl apply -f emptydir-vol.yaml
-
 
 # 컨네이너 내 접속
 kubectl get pod
@@ -143,7 +142,6 @@ sh -c "echo 'Hello from Kubernetes storage' > /mnt/data/index.html"
 cat /mnt/data/index.html
 ```
 
-
 ## 3.2 storageClass
 ```yaml
 apiVersion: storage.k8s.io/v1
@@ -152,9 +150,8 @@ metadata:
   name: manual
 provisioner: kubernetes.io/no-provisioner
 volumeBindingMode: WaitForFirstConsumer
-
 ```
-```sh
+```bash
 
 kubectl apply -f task-pv-sc.yaml
 kubectl get storageclass -n default
@@ -183,7 +180,7 @@ spec:
     path: "/mnt/data"
 
 ```
-```sh
+```bash
 
 kubectl apply -f task-pv-pv.yaml
 kubectl get pv -n default
@@ -216,7 +213,7 @@ kubectl get pvc
 kubectl get pv -n default
 ```
 
-## 3.4 pod
+## 3.5 pod 배포
 ```yaml
 apiVersion: v1
 kind: Pod
@@ -261,8 +258,8 @@ cat /usr/share/nginx/html/index.html
 ## 다른 노드에 /mnt/data/index.html를 생성
 
 ```
-## 3.5 clean
-```sh
+## 3.6 clean
+```bash
 kubectl delete pod task-pv-pod
 kubectl delete pvc task-pv-pvc
 kubectl delete pv task-pv-pv
@@ -270,14 +267,12 @@ kubectl delete pv task-pv-sc
 
 # Dir 생성한 모든 Worker 노드에서 
 rm -pr /mnt/data
-
 ```
 
 # 4. nfs(Network File System) 구성 
 
 ## 4.1 VM disk 할당
-
-``` sh
+```bash
 
 # NFS용 disk 추가 
   - host : master01
@@ -298,12 +293,11 @@ touch /data/nfs/aa.txt; ls -l /data/nfs
 echo "/dev/xvdc /data/nfs ext4 defaults 0 2" >> /etc/fstab
 
 cat /etc/fstab
-
 ```  
 
 ## 4.2 nfs 서버 구성
 
-```sh
+```bash
 
 # Master Node 
 apt update
@@ -320,16 +314,14 @@ systemctl restart nfs-kernel-server.service
 # systemctl stop nfs-kernel-server.service
 # systemctl start nfs-kernel-server.service
 # systemctl status nfs-kernel-server.service
-   
 ``` 
 - Master 노드 사설 IP
-
   ![Master Node 사설 IP](/lecture6/img/lecture6-nfs-master-ip.png)
 
 
 ## 4.3 nfs 클라이언트 구성
 
-```sh
+```bash
 
 # Worker01, 02 Node 
 apt update
@@ -347,53 +339,71 @@ mkdir -p /data/nfs
 mount 172.27.0.179:/data/nfs /data/nfs
 ls -l /data/nfs
 
-# 각자 Master 노드 사설 IP 대역 확인 후 수정 : 재시동 이후에도 자동 인식하게 
-echo "172.27.0.179:/data/nfs  /data/nfs  nfs  defaults  0 0 " >> /etc/exports
-
+# 각자 master 노드 사설 IP 대역 확인 후 수정 : 재시동 이후에도 자동 인식하게 
+echo "172.27.0.179:/data/nfs    /data/nfs    nfs    defaults    0 0" >> /etc/fstab 
+ 
 cat /etc/exports
 ``` 
 
 
 ## 4.4 nfs provisioner 설치
-
-```sh
+### 4.4.1 설치 파일 다운로드
+```bash
 
 # Master01 Node 
 mkdir -p ~/kubernetes/lecture6/manifest/nfs
 cd ~/kubernetes/lecture6/manifest/nfs
 git clone https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner.git
 cd nfs-subdir-external-provisioner/deploy
+```
 
-
-vi deployment.yaml
+### 4.4.2 NFS 서버 접속 정보 설정
+- deployment.yaml 수정
+```yaml
 #### deployment 내 nfs 환경 설정 수정 : 
-    env:
-      - name: PROVISIONER_NAME
-        value: k8s-sigs.io/nfs-subdir-external-provisioner
-      - name: NFS_SERVER
-        value: 172.27.0.179           ## NFS 서버 IP (각자 Master01 사설 IP)
-      - name: NFS_PATH
-        value: /data/nfs              ## NFS Path
+env:
+  - name: PROVISIONER_NAME
+    value: k8s-sigs.io/nfs-subdir-external-provisioner
+  - name: NFS_SERVER
+    value: 172.27.0.179           ## NFS 서버 IP (각자 Master01 사설 IP)
+  - name: NFS_PATH
+    value: /data/nfs              ## NFS Path
 volumes:
   - name: nfs-client-root
     nfs:
       server: 172.27.0.179            ## NFS 서버 IP (각자 Master01 사설 IP)
       path: /data/nfs              ## NAS Path
+```
+```bash
 
-vi vi class.yaml
+# 위 yaml 파일 참고하여 nfs 서버 IP 변경
+vi deployment.yaml
+```
+- class.yaml 수정
+```yaml
 #### storageClass 환경 설정 수정 
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: nfs-storageclass    ## Storage Class 이름 변경 -> 모두 소문자료.
 allowVolumeExpansion: true  ## 용량증설 지원  
+```
 
+```bash
+
+# 위 yaml 파일 참고하여 name, 용량증설 설정 추가
+vi vi class.yaml
+```
+### 4.4.4 provisioner 배포 
+```bash
 
 kubectl apply -f rbac.yaml
 kubectl apply -f deployment.yaml
 kubectl apply -f class.yaml
-
-vi test-claim.yaml.yaml
+```
+### 4.4.5 provisioner 서비스 확인
+- storageClassName 이름 변경 후
+```yaml
 #### Storage Class 이름 변경 
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -406,24 +416,38 @@ spec:
   resources:
     requests:
       storage: 1Mi
+```
+- 테스트 pvc 배포, 확인
+```bash
+
+# 위 내용 참고하여 storageClass 이름 변경
+vi test-claim.yaml.yaml
+```
+```bash
       
 kubectl apply -f test-claim.yaml
 kubectl get pv
 kubectl get pvc
 # pv, pvc 조회 결과 : pv를 생성하지 않았는데, 자동으로 생성 됨 
-root@master01:~/kubernetes/lecture6/manifest/nfs/nfs-subdir-external-provisioner/deploy# kubectl get pv
-NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                STORAGECLASS       VOLUMEATTRIBUTESCLASS   REASON   AGE
-pvc-e121bea0-a6c9-4fe2-9d7d-8b53588268d9   1Mi        RWX            Delete           Bound    default/test-claim   nfs-storageclass   <unset>                          20s
-root@master01:~/kubernetes/lecture6/manifest/nfs/nfs-subdir-external-provisioner/deploy# kubectl get pvc
-NAME         STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS       VOLUMEATTRIBUTESCLASS   AGE
-test-claim   Bound    pvc-e121bea0-a6c9-4fe2-9d7d-8b53588268d9   1Mi        RWX            nfs-storageclass   <unset>                 57s
-root@master01:~/kubernetes/lecture6/manifest/nfs/nfs-subdir-external-provisioner/deploy#
+#root@master01:~/kubernetes/lecture6/manifest/nfs/nfs-subdir-external-provisioner/deploy# kubectl get pv
+#NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                STORAGECLASS       VOLUMEATTRIBUTESCLASS   REASON   AGE
+#pvc-e121bea0-a6c9-4fe2-9d7d-8b53588268d9   1Mi        RWX            Delete           Bound    default/test-claim   nfs-storageclass   <unset>                          20s
+#root@master01:~/kubernetes/lecture6/manifest/nfs/nfs-subdir-external-provisioner/deploy# kubectl get pvc
+#NAME         STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS       VOLUMEATTRIBUTESCLASS   AGE
+#test-claim   Bound    pvc-e121bea0-a6c9-4fe2-9d7d-8b53588268d9   1Mi        RWX            nfs-storageclass   <unset>                 57s
+#root@master01:~/kubernetes/lecture6/manifest/nfs/nfs-subdir-external-provisioner/deploy#
 
 kubectl apply -f test-pod.yaml
-# Worker01 서버에서 
+``` 
+### 4.4.6 파일 생성 확인
+- Worker01 서버에서
+```bash
+
 ls -l /data/nfs/
+```
+### 4.4.7 nfs 테스트 clear
+```bash
 
 kubectl delete -f test-pod.yaml
 kubectl delete -f test-claim.yaml
-
 ``` 

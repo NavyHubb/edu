@@ -90,15 +90,13 @@ kubectl get all -n istio-system
 
 # http에 매핑 된 노드 포트 확인
 kubectl get service istio-ingressgateway -n istio-system -o jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}'
-
 ```
 ## 1.1 방화벽 오픈 : istio 접속 노드 포트
-- kt cloud master01 서버 30453 포트 오픈
+- kt cloud master01 서버에 http에 매핑 된 노드 포트(여기서는 30453) 오픈
 
 # 2. 데모 서비스 배포
 
 ```yaml
-
 apiVersion: networking.istio.io/v1
 kind: Gateway
 metadata:
@@ -142,9 +140,7 @@ spec:
         host: productpage
         port:
           number: 9080
-
 ```
-
 ```bash
 
 # 데모 서비스 배포용 namespace 생성
@@ -158,59 +154,48 @@ kubectl apply -f istio-1.24.2/samples/bookinfo/platform/kube/bookinfo.yaml -n  i
 
 ## Gateway, VirtualService 배포
 kubectl apply -f istio-1.24.2/samples/bookinfo/networking/bookinfo-gateway.yaml -n istio-demo-ns
-
-# 부라우저에서 접속 확인 
-http://211.253.25.128.sslip.io:30453/productpage
 ```
+- ### 서비스 확인 : 부라우저에서 
+  - http://211.253.25.128.sslip.io:30453/productpage
 
-# 3. 데모 서비스 배포
+# 3. istio 기능 확인 Addon 서비스 배포
 
 ```bash
 
 # Kiali 및 기타 애드온 설치 : promethus, grafana, jaeger, kiali
 kubectl apply -f istio-1.24.2/samples/addons -n istio-system
 
-#kiali 및 grafana, jaeger 노드 포트로 변경
+#kiali 및 grafana 노드 포트로 변경
 kubectl rollout status deployment/kiali -n istio-system 
-kubectl rollout status deployment/jaeger -n istio-system 
 kubectl rollout status deployment/grafana -n istio-system 
 
 # 서비스를 clusterip type -> nodePort 형태로 변경 (외부 접속)
 kubectl patch -n istio-system svc kiali -p '{"spec": {"type": "NodePort"}}'
 kubectl patch -n istio-system svc grafana -p '{"spec": {"type": "NodePort"}}'
-
-
 ```
-
-## 3.1 방화벽 오픈 : istio 접속 노드 포트
+## 3.1 방화벽 오픈 : Addon 접속 노드 포트
 ```bash
 
 # 실행 한 결과 확인 후 포트 변경 
 kubectl get svc -n istio-system
-
 ```
-- kt cloud master01 서버 kiali(30899) grafana(31140), zipkin(31571) 포트 오픈
+- kt cloud master01 서버에 kiali에 매핑 된 노드 포트(여기서는 30899) 오픈
+- kt cloud master01 서버에 grafana에 매핑 된 노드 포트(여기서는 31140) 오픈
 
-```bash
-
-# 부라우저에서 kiali 접속 확인
-http://211.253.25.128.sslip.io:30899
-
-# 부라우저에서 grafana 접속 확인
-http://211.253.25.128.sslip.io:31140
-
-```
+## 3.2 서비스 확인 : 브라우저에서
+- ### kiali 접속 확인
+  - http://211.253.25.128.sslip.io:30899
+- ### grafana 접속 확인
+  - http://211.253.25.128.sslip.io:31140
 
 ```dtd
-
-for i in $(seq 1 100); do
+# 부하 발생 용 curl_product.sh로 생성
+for i in $(seq 1 300); do
   curl -s -o /dev/null "http://211.253.25.128.sslip.io:30453/productpage"
 done
-
 ```
 
 ```bash
 
 sh curl_product.sh
 ```
-

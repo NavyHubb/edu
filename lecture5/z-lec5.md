@@ -11,27 +11,24 @@ cd  ~/edu/lecture5
 # 1. namespace
 
 ## 1.1 web1 namespace
-```sh
+```bash
 
 kubectl create ns web1
 
 kubectl get namespace
 kubectl get ns 
 # 결과 조회
-root@master01:~/kubernetes/lecture5# kubectl get namespace
-NAME              STATUS   AGE
-default           Active   10d
-kube-node-lease   Active   10d
-kube-public       Active   10d
-kube-system       Active   10d
-web1              Active   28s
+#root@master01:~/kubernetes/lecture5# kubectl get namespace
+#NAME              STATUS   AGE
+#default           Active   10d
+#kube-node-lease   Active   10d
+#kube-public       Active   10d
+#kube-system       Active   10d
+#web1              Active   28s
 
 kubectl delete ns web1
-
-kubectl apply -f namespace.yaml
 ```
-
-nginx.yaml
+- nginx.yaml
 ```yaml
 apiVersion: v1
 kind: Service
@@ -67,14 +64,16 @@ spec:
         ports:
         - containerPort: 80
 ```
-```sh
+```bash
+
+kubectl apply -f namespace.yaml
 
 ## web1 namespace에 배포 
 kubectl apply -f nginx.yaml -n web1
 ```
 
 ## 1.2 web2 namespace
-httpd.yaml
+- httpd.yaml
 ```yaml
 apiVersion: v1
 kind: Service
@@ -115,15 +114,16 @@ spec:
         - name: http
           containerPort: 80
 ```
-```sh
+```bash
 
 ## web2 namespace에 배포 
 kubectl apply -f httpd.yaml -n web2
 ```
-## ingress-rule
+## 1.3 ingress-rule
 - ingress-rule은 각 namespace에 위치 해야 됨
 
-web1-ing.yaml
+
+- web1-ing.yaml
 ```yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -143,15 +143,15 @@ spec:
             port:
               number: 80
 ```
-```sh
+```bash
 
 kubectl apply -f web1-ing.yaml -n web1
-
-# 브라우저에서 확인
-http://nginx.211.253.25.128.sslip.io
 ```
+- ### 서비스 확인 : 브라우저에서
+  - http://nginx.211.253.25.128.sslip.io
 
-web2-ing.yaml
+
+- web2-ing.yaml
 ```yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -171,17 +171,18 @@ spec:
             port:
               number: 80
 ```
-```sh
+```bash
 
 kubectl apply -f web2-ing.yaml -n web2
-
-http://apache.211.253.25.128.sslip.io
 ```
+- ### 서비스 확인 : 브라우저에서
+    - http://apache.211.253.25.128.sslip.io
 
+---
 # 2. ConfigMap
-- configmap을 통해서 nginx index.html을 변경
+configmap을 통해서 nginx index.html을 변경
 
-configmap-example.yaml
+- configmap-example.yaml
 ```yaml
 apiVersion: v1
 kind: ConfigMap
@@ -240,17 +241,18 @@ spec:
       targetPort: 80
   type: ClusterIP
 ```
-```sh
+```bash
 
 ## 기존 배포된 nginx-deployemt가 변경
 kubectl apply -f configmap-example.yaml -n web1
-
-## 기존 nginx ingress 사용, 변경된 index 페이지 노출 
-http://nginx.211.253.25.128.sslip.io/
 ```
+- ### 서비스 확인 : 브라우저에서
+  - http://nginx.211.253.25.128.sslip.io/
 
-# secret
-secret-example.yaml
+---
+# 3. secret
+## 3.1 secretRef 기반 참조
+- secret-example.yaml
 ```yaml
 apiVersion: v1
 kind: ConfigMap
@@ -293,7 +295,7 @@ spec:
         - secretRef:
             name: mysql-secret    # Secret에 정의된 key mysql-secret의 모든 데이터가 자동으로 환경 변수로 추가
 ```
-```sh
+```bash
 
 ## db namespace를 생성
 kubectl create ns db
@@ -303,25 +305,28 @@ kubectl apply -f secret-example.yaml
 
 kubectl get pod -n db
 # 결과 조회
-root@master01:~/kubernetes/lecture5# kubectl get pod -n db
-NAME                     READY   STATUS    RESTARTS   AGE
-mysql-647f8f98fd-kjhbq   1/1     Running   0          17s
+#root@master01:~/kubernetes/lecture5# kubectl get pod -n db
+#NAME                     READY   STATUS    RESTARTS   AGE
+#mysql-647f8f98fd-kjhbq   1/1     Running   0          17s
 
 ## db namespace의 mysql pod로 들어가서 실행
 kubectl exec -it mysql-647f8f98fd-kjhbq -n db -- /bin/bash
+```
+- mysqlDB 파드에서 실행
+```bash
 mysql -uroot -padmin1234
 show databases;
 
-MariaDB [(none)]> show databases;
-+--------------------+
-| Database           |
-+--------------------+
-| freesia            |
-| information_schema |
-| mysql              |
-| performance_schema |
-| sys                |
-+--------------------+
+#MariaDB [(none)]> show databases;
+#+--------------------+
+#| Database           |
+#+--------------------+
+#| freesia            |
+#| information_schema |
+#| mysql              |
+#| performance_schema |
+#| sys                |
+#+--------------------+
 ## "freesia" database 존재 확인
 
 use freesia
@@ -338,38 +343,37 @@ select * from users;
 commit;
 
 # DB 작업 결과
-MariaDB [(none)]> use freesia
-Database changed
-MariaDB [freesia]> CREATE TABLE users (
-    ->     no SERIAL PRIMARY KEY,
-    ->     id VARCHAR(100) NOT NULL,
-    ->     name VARCHAR(100) NOT NULL,
-    ->     email VARCHAR(255)
-    -> );
-Query OK, 0 rows affected (0.008 sec)
+#MariaDB [(none)]> use freesia
+#Database changed
+#MariaDB [freesia]> CREATE TABLE users (
+#    ->     no SERIAL PRIMARY KEY,
+#    ->     id VARCHAR(100) NOT NULL,
+#    ->     name VARCHAR(100) NOT NULL,
+#    ->     email VARCHAR(255)
+#    -> );
+#Query OK, 0 rows affected (0.008 sec)
 
-MariaDB [freesia]> show tables;
-+-------------------+
-| Tables_in_freesia |
-+-------------------+
-| users             |
-+-------------------+
-1 row in set (0.000 sec)
-
-MariaDB [freesia]> insert into users(id, name, email) values('cho', 'ydcho', 'yeongdeok.cho@kt.com');
-Query OK, 1 row affected (0.001 sec)
-
-MariaDB [freesia]> select * from users;
-+----+-----+-------+----------------------+
-| no | id  | name  | email                |
-+----+-----+-------+----------------------+
-|  1 | cho | ydcho | yeongdeok.cho@kt.com |
-+----+-----+-------+----------------------+
-1 row in set (0.000 sec)
-
+#MariaDB [freesia]> show tables;
+#+-------------------+
+#| Tables_in_freesia |
+#+-------------------+
+#| users             |
+#+-------------------+
+#1 row in set (0.000 sec)
+#
+#MariaDB [freesia]> insert into users(id, name, email) values('cho', 'ydcho', 'yeongdeok.cho@kt.com');
+#Query OK, 1 row affected (0.001 sec)
+#
+#MariaDB [freesia]> select * from users;
+#+----+-----+-------+----------------------+
+#| no | id  | name  | email                |
+#+----+-----+-------+----------------------+
+#|  1 | cho | ydcho | yeongdeok.cho@kt.com |
+#+----+-----+-------+----------------------+
+#1 row in set (0.000 sec)
 ```
-## secretKeyRef 기반으로 생성 테스트
-secret-example2.yaml
+## 3.2 secretKeyRef 기반 참조
+- secret-example2.yaml
 ```yaml
 apiVersion: v1
 kind: ConfigMap
@@ -416,7 +420,7 @@ spec:
               name: mysql-secret          # 참조 할 secret name 참고한다고 정의
               key: MYSQL_ROOT_PASSWORD    # 참조 할 key
 ```
-```sh
+```bash
 
 ## 기존 mysql를 삭제한다 
 kubectl delete -f secret-example.yaml
@@ -426,29 +430,32 @@ kubectl apply -f secret-example2.yaml
 ## db namespace의 mysql pod로 들어가서 실행
 kubectl get pod -n db
 # 조회 결과
-root@master01:~/kubernetes/lecture5# kubectl get pod -n db
-NAME                     READY   STATUS    RESTARTS   AGE
-mysql-646865fcb5-k72md   1/1     Running   0          23s
+#root@master01:~/kubernetes/lecture5# kubectl get pod -n db
+#NAME                     READY   STATUS    RESTARTS   AGE
+#mysql-646865fcb5-k72md   1/1     Running   0          23s
 
 kubectl exec -it mysql-646865fcb5-k72md -n db -- bash
+```
+- mysqlDB 파드에서 실행
+```bash
 
 mysql -uroot -padmin123456!
 show databases;
 
-MariaDB [(none)]> show databases;
-+--------------------+
-| Database           |
-+--------------------+
-| freesia            |
-| information_schema |
-| mysql              |
-| performance_schema |
-| sys                |
-+--------------------+
+#MariaDB [(none)]> show databases;
+#+--------------------+
+#| Database           |
+#+--------------------+
+#| freesia            |
+#| information_schema |
+#| mysql              |
+#| performance_schema |
+#| sys                |
+#+--------------------+
 ## "freesia" database 존재 확인
 ```
 
-## 차이점 요약
+## 3.3 차이점 요약
 | 구분          | envFrom                           | env                                 |  
 |-------------|-----------------------------------|-------------------------------------|
 |설정 대상      | ConfigMap 또는 Secret의 모든 키-값       | 개별 환경 변수(특정 키-값)             | 
@@ -459,7 +466,7 @@ MariaDB [(none)]> show databases;
 |보안성        |민감한 데이터도 모두 환경 변수로 노출될 위험 있음 | 민감한 데이터를 특정 키만 선택해 노출 방지 가능   |
 
 
-# clear
+# 4. clear
 ```sh
 
 kubectl delete -f configmap-example.yaml -n web1

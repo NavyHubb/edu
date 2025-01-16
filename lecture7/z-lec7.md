@@ -27,8 +27,8 @@ kubectl get nodes --show-labels | grep db
 ## label 삭제 
 kubectl label nodes worker02   db-
 kubectl get nodes --show-labels | grep db
-
 ```
+
 # 2. nodeSelector 적용 nginx 배포
 ```yaml
 apiVersion: apps/v1
@@ -73,7 +73,6 @@ kubectl apply -f nodeSelector.yaml
 # 조회 결과 : 실행 Node 확인, Worker01만 실행 
 kubectl get pod -o wide
 kubectl delete -f nodeSelector.yaml
-
 ```
 
 # 3. nodeAffinity
@@ -232,7 +231,6 @@ kubectl apply -f podAffinity.yaml
 kubectl scale --current-replicas=4 --replicas=5 deployment/nginx
 ## 삭제
 kubectl delete -f podAffinity.yaml
-
 ```
 
 # 5. podAntiAffinity
@@ -279,7 +277,7 @@ spec:
             - name: http
               containerPort: 80
 ```
-```sh
+```bash
 
 ## replicas=3
 kubectl apply -f podAntiAffinity.yaml
@@ -454,7 +452,7 @@ spec:
           - name: http
             containerPort: 80
 ```
-```sh
+```bash
 
 ## node에 taint 설정 : worker01 에 pod 생성 안됨
 kubectl taint nodes worker01 oss=nginx:NoSchedule 
@@ -503,7 +501,7 @@ kubectl label node worker02 nodename- web- db-
 ```
 
 # 7. Blue & Green 배포
-- Blue : 현재 운영 버전
+## 7.1 Blue : 현재 운영 버전
 ```yaml
 
 apiVersion: v1
@@ -585,10 +583,23 @@ spec:
                   number: 80
 
 ```
-- Green : 신규 버전
-```yaml
+```bash
 
----
+kubectl apply -f nginx-deploy-blue.yaml
+kubectl get pods -l app=nginx,version=blue
+# 조회 결과 
+#root@master01:~/kubernetes/lecture7# kubectl get pods -l app=nginx,version=blue
+#NAME                                     READY   STATUS    RESTARTS   AGE
+#nginx-blue-deployment-5cc4df98b4-lx7zx   1/1     Running   0          55s
+#nginx-blue-deployment-5cc4df98b4-zdnjs   1/1     Running   0          54s
+
+kubectl get service nginx-service
+```
+- ### 서비스 확인(버전 1.17) : 브라우저에서
+  - http://nginx.211.253.25.128.sslip.io
+  
+## 7.2 Green : 신규 버전
+```yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -636,24 +647,13 @@ spec:
 ```
 ```bash
 
-kubectl apply -f nginx-deploy-blue.yaml
-kubectl get pods -l app=nginx,version=blue
-# 조회 결과 
-#root@master01:~/kubernetes/lecture7# kubectl get pods -l app=nginx,version=blue
-#NAME                                     READY   STATUS    RESTARTS   AGE
-#nginx-blue-deployment-5cc4df98b4-lx7zx   1/1     Running   0          55s
-#nginx-blue-deployment-5cc4df98b4-zdnjs   1/1     Running   0          54s
-
-kubectl get service nginx-service
-
-## 웹 브라우저에서 확인 : 버전 1.17
-http://nginx.211.253.25.128.sslip.io
-
 # 서비스 신규 버전 배포 : green deploy 
 kubectl apply -f nginx-deploy-green.yaml
 kubectl get pods -l app=nginx,version=green
+```
 
-
+## 7.3 서비스 전환
+```bash
 
 # 서비스 전환 전(blue) 상태 : Selector, EndPoing 확인  
 kubectl describe service nginx-service
@@ -671,10 +671,11 @@ kubectl get endpoints nginx-service
 
 ## 서비스 오류 시 롤백 : 이전 버전 인 Blue
 kubectl patch service nginx-service -p '{"spec":{"selector":{"app":"nginx","version":"blue"}}}'
-
 ```
+- ### 서비스 확인(버전 1.22) : 브라우저에서
+  - http://nginx.211.253.25.128.sslip.io
 
-## 7.1 Clear
+## 7.4 Clear
 ```bash
 
 kubectl delete -f nginx-deploy-blue.yaml

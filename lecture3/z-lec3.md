@@ -9,11 +9,13 @@ cd  ~/edu/lecture3
 ```
 
 # 1. DaemonSet
+```dtd
 - fluent bit은 대표적 로그 수집기중(LogStash, fluentd, fluentbit) 가장 가볍움(10배이상 가볍다)
 - 분산한경을 고려하여 만들어졌기에 최근 k8s의 로그 수집기 사용
 - https://fluentbit.io/
+```
 
-fluent-bit-daemonset.yaml
+- fluent-bit-daemonset.yaml
 ```yaml
 apiVersion: apps/v1
 kind: DaemonSet
@@ -46,9 +48,6 @@ spec:
           path: /var/lib/docker/containers
       
 ```
-- replicas 설정 없음
-- 각 node에 1개씩 fluentbit 파드가 생성
-
 
 ```sh
 
@@ -56,27 +55,32 @@ kubectl apply -f fluentbit-daemonset.yaml
 
 ## daemonset 조회
 kubectl get daemonset
-kubectl get ds 
+kubectl get ds
+ 
+# replicas 설정 없음
+# 각 node에 1개씩 fluentbit 파드가 생성
 # 조회 결과
-root@master01:~/kubernetes/lecture3# kubectl get daemonset
-NAME        DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
-fluentbit   2         2         2       2            2           <none>          57s
+#root@master01:~/kubernetes/lecture3# kubectl get daemonset
+#NAME        DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+#fluentbit   2         2         2       2            2           <none>          57s
 
 ## pod 조회
 kubectl get pod -n default -o wide
+
 # 실행 node 확인
-root@master01:~/kubernetes/lecture3# kubectl get pod -n default -o wide
-NAME                                READY   STATUS    RESTARTS   AGE     IP           NODE       NOMINATED NODE   READINESS GATES
-fluentbit-kdhrt                     1/1     Running   0          2m26s   10.42.2.38   worker02   <none>           <none>
-fluentbit-m54nm                     1/1     Running   0          2m26s   10.42.1.26   worker01   <none>           <none>
+#root@master01:~/kubernetes/lecture3# kubectl get pod -n default -o wide
+#NAME                                READY   STATUS    RESTARTS   AGE     IP           NODE       NOMINATED NODE   READINESS GATES
+#fluentbit-kdhrt                     1/1     Running   0          2m26s   10.42.2.38   worker02   <none>           <none>
+#fluentbit-m54nm                     1/1     Running   0          2m26s   10.42.1.26   worker01   <none>           <none>
 
 
 ## clear
 kubectl delete -f fluentbit-daemonset.yaml
 ```
 
+---
 # 2. StatefulSet
-nginx-statefulset.yaml
+- nginx-statefulset.yaml
 ```yaml
 apiVersion: v1
 kind: Service
@@ -126,23 +130,19 @@ kubectl apply -f nginx-statefulset.yaml
 kubectl get statefulset
 kubectl get sts
 # 조회 결과
-root@master01:~/kubernetes/lecture3# kubectl get sts
-NAME                READY   AGE
-nginx-statefulset   3/3     102s
+#root@master01:~/kubernetes/lecture3# kubectl get sts
+#NAME                READY   AGE
+#nginx-statefulset   3/3     102s
 
 ## pod 조회
 kubectl get pod -n default -o wide
+
 # 실행된 pod 이름 확인
-root@master01:~/kubernetes/lecture3# kubectl get pod -n default -o wide
-NAME                                READY   STATUS    RESTARTS   AGE     IP           NODE       NOMINATED NODE   READINESS GATES
-nginx-statefulset-0                 1/1     Running   0          2m40s   10.42.1.27   worker01   <none>           <none>
-nginx-statefulset-1                 1/1     Running   0          2m32s   10.42.2.39   worker02   <none>           <none>
-nginx-statefulset-2                 1/1     Running   0          2m25s   10.42.1.28   worker01   <none>           <none>
-
-
-# [참고] k8s resource api및 단축키 조회 가능한 명령어 
-kubectl api-resources
-
+#root@master01:~/kubernetes/lecture3# kubectl get pod -n default -o wide
+#NAME                                READY   STATUS    RESTARTS   AGE     IP           NODE       NOMINATED NODE   READINESS GATES
+#nginx-statefulset-0                 1/1     Running   0          2m40s   10.42.1.27   worker01   <none>           <none>
+#nginx-statefulset-1                 1/1     Running   0          2m32s   10.42.2.39   worker02   <none>           <none>
+#nginx-statefulset-2                 1/1     Running   0          2m25s   10.42.1.28   worker01   <none>           <none>
 ```
 
 ## headless service
@@ -169,10 +169,10 @@ spec:
 kubectl get svc 
 
 # 조회 결과 : clusterIP: None 확인
-root@master01:~/kubernetes/lecture3# kubectl get svc
-NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
-kubernetes           ClusterIP   10.43.0.1    <none>        443/TCP   9d
-nginx-headless-svc   ClusterIP   None         <none>        80/TCP    5m8s
+#root@master01:~/kubernetes/lecture3# kubectl get svc
+#NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+#kubernetes           ClusterIP   10.43.0.1    <none>        443/TCP   9d
+#nginx-headless-svc   ClusterIP   None         <none>        80/TCP    5m8s
 
 kubectl describe svc nginx-headless-svc
 ```
@@ -221,17 +221,16 @@ curl nginx-statefulset-1.nginx-headless-svc.default.svc.cluster.local
 curl nginx-statefulset-2.nginx-headless-svc.default.svc.cluster.local
 
 nslookup nginx-headless-svc.default.svc.cluster.local
------
-Server:         10.43.0.10
-Address:        10.43.0.10:53
 
-Name:   nginx-headless-svc.default.svc.cluster.local
-Address: 10.42.1.52
-Name:   nginx-headless-svc.default.svc.cluster.local
-Address: 10.42.1.51
-Name:   nginx-headless-svc.default.svc.cluster.local
-Address: 10.42.1.53
-
+#Server:         10.43.0.10
+#Address:        10.43.0.10:53
+#
+#Name:   nginx-headless-svc.default.svc.cluster.local
+#Address: 10.42.1.52
+#Name:   nginx-headless-svc.default.svc.cluster.local
+#Address: 10.42.1.51
+#Name:   nginx-headless-svc.default.svc.cluster.local
+#Address: 10.42.1.53
 ```
 
 ## 2.1  clear

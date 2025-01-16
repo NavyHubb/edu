@@ -12,7 +12,7 @@ cd  ~/edu/lecture1
 # 1.  pod 생성
 
 ## 1.1 kubectl run
-```bash
+```sh
 
 # default namepsace에서 실행된다 
 kubectl run my-nginx --image=nginx
@@ -29,7 +29,8 @@ kubectl delete pod/my-nginx
 ```
 
 
-## 1.2 pod.yaml(k8s manifest) 로  pod 생성 
+## 1.2 pod.yaml(k8s manifest) 로  pod 생성
+- pod.yaml
 ```yaml
 apiVersion: v1
 kind: Pod
@@ -43,7 +44,7 @@ spec:
       image: nginx:latest
 ```
 
-```bash
+```sh
 
 kubectl create -f pod.yaml
 ## apply 추천
@@ -70,15 +71,14 @@ curl http://localhost
 
 # log 저장 위치 : Worker Node
 # /var/log/pods/{Namespace명}_{Pod명}_{Pod-uid}
-ex) /var/log/pods/default_my-nginx_0c9a0e8f-716a-4204-88ea-49829437165a/nginx
-
+#ex) /var/log/pods/default_my-nginx_0c9a0e8f-716a-4204-88ea-49829437165a/nginx
 
 # clear 
 kubectl delete -f pod.yaml
 ```
 
 ## 1.3 Replication Controller
-rc.yaml
+- rc.yaml
 ```yaml
 apiVersion: v1
 kind: ReplicationController
@@ -117,15 +117,15 @@ kubectl exec -it my-nginx-66txs -n default -- curl localhost
 kubectl get pods
 kubectl delete pod my-nginx-l2258 
 
-
 ## 삭제
 kubectl delete -f rc.yaml
 ```
 
 
 ## 1.4  ReplicaSet
+레플리카셋을 직접 사용하기보다는 디플로이먼트를 사용하는 것을 권장
 
-rc.yaml
+- rs.yaml
 ```yaml
 apiVersion: apps/v1
 kind: ReplicaSet
@@ -149,22 +149,23 @@ spec:
         image: nginx:latest
         ports:
           - containerPort: 80
-
 ```
 ```bash
 
 # 생성 
 kubectl apply -f rs.yaml
-# 확인
+
+# replicaset 확인
+kubectl get replicaset
+kubectl get rs
+
+# pod 
 kubectl get pods
 kubectl exec -it my-nginx-26hzf -n default -- curl localhost
 
-# pod 하나를 지워본다, 다시 생성된다 
-kubectl delete pod my-nginx-l2258 
+# pod 하나 삭제하면, 다시 생성 됨 
+kubectl delete pod my-nginx-l2258
 ```
-- 레플리카셋을 직접 사용하기보다는 디플로이먼트를 사용하는 것을 권장
-- kubectl get replicaset
-- kubectl get rs
 
 replicaset은 replication controller와 똑같이 동작하지만 더 풍부한 표현식 pod selector를 갖는다.
 ```yaml
@@ -198,10 +199,12 @@ kubectl delete -f rs.yaml
 ```
 
 ## 1.5  deployment
+```
 - 파드와 레플리카셋(ReplicaSet)에 대한 선언적 업데이트를 제공한다
 - Rolling Update
+```
 
-nginx-deploy.yaml
+- nginx-deploy.yaml
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -243,7 +246,7 @@ kubectl get pods --show-labels
 
 ### 1.5.2 update 
 
-deploy.yaml 
+- deploy.yaml 
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -316,18 +319,15 @@ kubectl get deploy
 kubectl rollout status deploy/nginx-deployment
 
 kubectl rollout history deploy/nginx-deployment
-## CHANGE-CAUSE에 정보가 나오지 않는다 
-----
-REVISION  CHANGE-CAUSE
-1         <none>
 
-## [참고] 이전에는 --record 를 해야 history에서 확인 하지만 --record deprecated 됨
-# k apply -f deploy.yaml --record
+## CHANGE-CAUSE에 정보가 나오지 않는다 
+#REVISION  CHANGE-CAUSE
+#1         <none>
 ```
 
 ## 2.1 rollout history CHANGE-CAUSE 설정 
 
-deploy-rollout.yaml
+- deploy-rollout.yaml
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -363,8 +363,8 @@ kubectl apply -f deploy-rollout.yaml
 
 kubectl rollout history deploy/nginx-deployment
 
-REVISION  CHANGE-CAUSE
-1         image updated to 1.17
+#REVISION  CHANGE-CAUSE
+#1         image updated to 1.17
 ```
 ## 2.2  image update
 ```sh
@@ -395,4 +395,10 @@ kubectl rollout history deploy/nginx-deployment
 # 지정된 revision으로 undo
 kubectl rollout undo deploy/nginx-deployment --to-revision=1
 kubectl rollout history deploy/nginx-deployment
+```
+
+## [참고] k8s resource api 및 단축키 조회 명령어
+```bash
+
+kubectl api-resources
 ```

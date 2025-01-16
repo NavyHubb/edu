@@ -1,7 +1,6 @@
 # kubernetes
 
 
-
 ## 주요 실습 내용
 
 1. Single Master Cluster 구성 
@@ -18,7 +17,7 @@
 
 ```
 테스트 소스 : 수정 전
-git remote add origin http://20.39.189.171/platformteam/kubernetes.git
+git remote add origin git@github.com:yeongdeokcho/edu-demo.git
 git branch -M main
 git push -uf origin main
 ```

@@ -8,17 +8,15 @@
 cd  ~/edu/lecture8
 ```
 
-
-# 1. CI/CD
+# CI/CD
 - git : github
 - image Registry: docker-hub
 - build :  docker build
 - deploy: argocd
 - github/docker-hub 계정 필요
 
-## 1.1 github 소스 import 
-```bash
-
+## 1. github 소스 import 
+```
 # 기준 소스 github 접속
 https://github.com/yeongdeokcho/edu-demo
 
@@ -28,7 +26,6 @@ code 클릭 후 URL 복사
 ## 각자 githut 이동
 
 ## 상단 + 버튼 클릭 후 import 설정 추가 후 begin import 클릭
-
 ```
 - 기준 소스 복사 : HTTPS
   ![docker build](/lecture8/img/lecture8-github-base.png)
@@ -63,23 +60,43 @@ CMD ["java", "-jar", "demo.jar"]
 ```
 ```bash
 
-# docker desktop 실행
+# 개인 PC에서 진행 : docker desktop 실행
 
+## MAC/Linux 사용자
+#cd /Users/doong2s/src/ktds/demo
+#sudo docker build -f Dockerfile .  --tag k8s-edu --no-cache
+
+## Windows 사용자
 cd /Users/doong2s/src/ktds/demo
 sudo docker build -f Dockerfile .  --tag k8s-edu --no-cache
+
 # docker image 조회
 docker images
 docker login
-docker tag k8s-edu ydcho0902/k8s-edu:v0.0.1
-docker push ydcho0902/k8s-edu:v0.0.1
 
+# 도커허브 개인계정/Repo 변경 후 진행 
+docker tag k8s-edu ydcho0902/k8s-edu:v0.0.1
+
+# dockerHub 에 k8s-edu 레포지토리 생성 후 (개인계정/repo명:TAG) 
+docker push ydcho0902/k8s-edu:v0.0.1
 ```
 - docker buile
 ![docker build](/lecture8/img/lecture8-docker-build.png)
 - docker hub push image 조회 
 ![docker hub](/lecture8/img/lecture8-docker-push.png)
 
-# 3. k8s에 docker hub secret 생성
+# 3. Demo 서비스 수동 배포
+## 3.1 docker hub secret 생성
+
+```bash
+
+# Docker 로그인 정보를 Base64로 인코딩
+#echo -n 'my-docker-username:my-docker-password' | base64
+
+## master01 서버에서 실행,  
+echo -n 'mosy@paran.com:f..&..' | base64
+#bW9zeUBwYXQhbJ5jb206ZnJvYXNzd29yZA==
+```
 - dockerconfig.json : auth 값 수정
 ```json
 {
@@ -92,18 +109,12 @@ docker push ydcho0902/k8s-edu:v0.0.1
 ```
 ```bash
 
-# 로컬 PC에서 실행 : docker login 후
-# Docker 로그인 정보를 Base64로 인코딩
-#echo -n 'my-docker-username:my-docker-password' | base64
-
-echo -n 'mosy@paran.com:f..&..' | base64
-bW9zeUBwYXQhbJ5jb206ZnJvYXNzd29yZA==
-
-# auth 값 수정
+# 위에서 실행 auth 값 수정 : 아래 json 파일 참조하여 토큰값 변경 
 vi dockerconfig.json 
 
+## master01 서버에서 실행,
 cat dockerconfig.json | base64
-ewogICJhdXRocyI6IHsKICAgICJodHRwczovL2luZGV4LmRv...생략...==
+#ewogICJhdXRocyI6IHsKICAgICJodHRwczovL2luZGV4LmRv...생략...==        ##### 각자 개인계정 토근 값 변경 후 
 ```
 
 ```yaml
@@ -117,6 +128,13 @@ data:
     eyJhdXRocyI6eyJodHRwczovL2luZGV4LmRvY2tlci5pby92MSguZG9ja...생략...==
 type: kubernetes.io/dockerconfigjson
 ```
+```bash
+
+# Master01 노드에서 진행
+kubectl apply -f docker-secret.yaml
+kubectl get secret
+```
+## 3.2 서비스 배포(수동)
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -189,28 +207,21 @@ spec:
                 port:
                   number: 80
 ```
-
 ```bash
 
 # Master01 노드에서 진행
-kubectl apply -f docker-secret.yaml
-kubectl get secret
-
 kubectl apply -f demo-deploy.yaml
-
-# 브라우저에서 확인
-http://k8s.211.253.25.128.sslip.io/api/v1/user/82265604
-
 ```
+- #### 서비스 확인 : 브라우저에서
+  - http://k8s.211.253.25.128.sslip.io/api/v1/user/82265604
 
-# 3. argocd
-## 3.1 argocd 설치
+# 4. argocd로 서비스 배포하기
+## 4.1 argocd 설치
 ```bash
 
 curl https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml > argocd-install.yaml
 vi argocd-install.yaml
-## 23744 라인 전후에 - --insecure  추가(https 비활성화 옵션)
-
+## 아래 yaml 23744 라인 전후에 - --insecure  추가(https 비활성화 옵션) 참고
 ```
 ```yaml
 apiVersion: apps/v1
@@ -258,8 +269,7 @@ spec:
 ```
 ![argocd 설치](/lecture8/img/lecture8-argocd-install.png)
 
-
-- argocd-ingress
+## 4.2 argocd 접속 ingress 생성
 ```yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -291,25 +301,25 @@ kubectl apply -n argocd -f argocd-install.yaml
 
 ## argocd password 확인 : root@ 전까지...
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
-#cMEREj0TXtE0wda4
-
+# 결과 확인
 #kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
 #cMEREj0TXtE0wda4root@master01:~/kubernetes/lecture8#
 
 kubectl apply -f argocd-ing.yaml
 ```
 
-## 3.2 argocd 접속
-- http://argocd.211.253.25.128.sslip.io/
-- admin/cMEREj0TXtE0wda4
+- ### argocd 접속
+  - http://argocd.211.253.25.128.sslip.io/
+  - 접속계정(위에서 확인 비번) : admin/cMEREj0TXtE0wda4
 
 
-## 3.2 argocd 설정 
-### 3.2.1 git repository 설정
+## 4.3 argocd 설정 
+### 4.2.1 git repository 설정
 
-```bash
+```
+# https://github.com/yeongdeokcho/edu.git -> 개인 레포지토리로 수정
+# 데모 소스와 다른 github repository에 k8s배포용 manaifast 관리 권장 
 
-# https://github.com/yeongdeokcho/edu.git -> 개인 레포지토리로 수정 
 o argocd 홈  >  Settings > Repositories > connect REPO
 o VIA HTTPS 선택
 o type: git
@@ -317,14 +327,12 @@ o project: default
 o Repository URL : https://github.com/yeongdeokcho/edu.git
 o Username : 각 개인 계정
 o Password : github PAT (zz-github.md 참조)
-
 ```
 ![github PAT](/lecture8/img/letcure8-cicd-github-pat.png)
 ![argocd connect](/lecture8/img/lecture8-cicd-argo-conn.png)
 
-### 3.2.2 git applications 설정
-```bash
-
+### 4.2.2 git applications 설정
+```
 o Applications > create
 o Name: demo
 o Project Name: default
