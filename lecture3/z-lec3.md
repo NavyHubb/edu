@@ -10,9 +10,13 @@ cd  ~/edu/lecture3
 
 # 1. DaemonSet
 ```dtd
-- fluent bit은 대표적 로그 수집기중(LogStash, fluentd, fluentbit) 가장 가볍움(10배이상 가볍다)
-- 분산한경을 고려하여 만들어졌기에 최근 k8s의 로그 수집기 사용
-- https://fluentbit.io/
+- DaemonSet은 클러스터의 특정 노드에서 반드시 실행되어야 하는 Pod를 관리하기 위한 k8s 리소스로서, 이를 사용하면 노드마다 하나씩 고정된 Pod가 실행됨
+  - 새로운 노드가 클러스터에 추가되면 DaemonSet에 의해 자동으로 해당 노드에서도 동일한 Pod가 생성됨
+  - 위와 같은 특성에 따라 노드별 고유한 작업을 수행할 때 주로 사용됨
+  - 대표적으로, 로그 수집
+  - fluent bit은 대표적 로그 수집기중(LogStash, fluentd, fluentbit) 가장 가벼움(10배 이상 가볍다)
+  - 분산 환경을 고려하여 만들어졌기에 최근 k8s의 로그 수집기로 사용
+  - https://fluentbit.io/
 ```
 
 - fluent-bit-daemonset.yaml
@@ -80,6 +84,19 @@ kubectl delete -f fluentbit-daemonset.yaml
 
 ---
 # 2. StatefulSet
+- StatefulSet은 Kubernetes에서 상태를 가지는 애플리케이션을 관리하기 위한 워크로드 API 오브젝트
+- StatefulSet은 각 Pod에 고유한 ID와 네트워크 정체성을 부여하며, 데이터를 유지해야 하거나, 순서 보장이 필요한 워크로드에 적합
+
+### 특징
+1. 각 Pod에 고유한 정체성 보장
+   - 각 Pod는 고유한 DNS 이름을 가짐으로써 네트워크 상 정체성을 가짐
+2. 순차적 생성과 삭제
+   - StatefulSet의 Pod은 순차적으로 생성되고 삭제됨
+   - 삭제는 생성의 역순으로 진행됨
+3. PVC와 통합
+    - StatefulSet은 각 Pod에 독립적인 스토리지를 제공
+    - 한 번 생성된 PersistentVolume은 삭제 후에도 유지되어, Pod이 재생성되더라도 동일한 데이터를 사용
+
 - nginx-statefulset.yaml
 ```yaml
 apiVersion: v1
@@ -187,7 +204,7 @@ kubectl describe svc nginx-headless-svc
 
 ```sh
 
-## 서비스가 로드밸렁스 하는지 확인해 본다 (3개 에 모두 적용)
+## 서비스가 로드밸런스 하는지 확인해 본다 (3개 에 모두 적용)
 ## Master Node에서 실행
 ## nginx 3개 pod에 index.html 파일 생성해 LB 동작하는지 확인  
 ### k9s에서 진행하는것을 추천

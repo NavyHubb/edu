@@ -411,8 +411,8 @@ spec:
       - name: mysql
         image: mariadb:10.7
         envFrom:                          # ConfigMap 및 Secret의 모든 키-값 쌍을 환경 변수로 컨테이너에 주입
-        - configMapRef:
-            name: mysql-config
+        - configMapRef:                   
+            name: mysql-config            # 데이터베이스 이름을 가져오기 위함
         env:                              # 특정 키만 선택적으로 환경 변수로 설정
         - name: MYSQL_ROOT_PASSWORD
           valueFrom:

@@ -2,18 +2,24 @@
 - Master Node에서 실행
 
 ```bash
-
 # cd ~
 # git clone https://github.com/yeongdeokcho/edu.git
 cd  ~/edu/lecture4
 ```
 
 
-# 1. ingress
-
+# 1. Ingress
+- Ingress는 클러스터 외부로부터 내부 서비스(pod)에 HTTP(S) 트래픽을 라우팅하기 위한 API 객체
+- 즉, 클러스터 내부의 여러 서비스에 접근하기 위해 외부로부터 오는 요청을 처리
+- 
 ## 1.1 ingress controller
+- Ingress 리소스를 실제로 해석하고 트래픽을 라우팅하는 역할을 하는 컴포넌트
+- Ingress는 Kubernetes API 오브젝트이지만, Ingress가 동작하려면 클러스터에 Ingress Controller가 배포되어 있어야 함
+- 대표적인 Ingress Controller
+  - Nginx Ingress Controller, Traefik, HAProxy 등등
+
 - nginx ingresscontroller
-```
+```sh
 # rke2는 기본적으로 nginx-ingressController가 설치 됨
 # kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.5/deploy/static/provider/cloud/deploy.yaml
 ```
@@ -127,13 +133,13 @@ metadata:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   ingressClassName: nginx
-  rules:
+  rules:  # Ingress에서 요청을 처리하는 규칙을 정의
   - http:
       paths:
-      - path: /nginx
+      - path: /nginx    # 요청 URL의 특정 경로를 기반으로 라우팅
         pathType: Prefix
-        backend:
-          service:
+        backend:    # Ingress에서 요청을 처리하는 규칙을 정의
+          service:  # 서비스 이름과 포트를 설정해야 함
             name: nginx-svc
             port:
               number: 80

@@ -131,7 +131,7 @@ type: kubernetes.io/dockerconfigjson
 ```bash
 
 # Master01 노드에서 진행
-kubectl apply -f docker-secret.yaml
+kubectl apply -f dockerhub-secret.yaml
 kubectl get secret
 ```
 ## 3.2 서비스 배포(수동)
@@ -208,8 +208,6 @@ spec:
                   number: 80
 ```
 ```bash
-
-# Master01 노드에서 진행
 kubectl apply -f demo-deploy.yaml
 ```
 - #### 서비스 확인 : 브라우저에서
@@ -270,6 +268,7 @@ spec:
 ![argocd 설치](/lecture8/img/lecture8-argocd-install.png)
 
 ## 4.2 argocd 접속 ingress 생성
+- argocd-ing.yaml
 ```yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -318,7 +317,7 @@ kubectl apply -f argocd-ing.yaml
 
 ```
 # https://github.com/yeongdeokcho/edu.git -> 개인 레포지토리로 수정
-# 데모 소스와 다른 github repository에 k8s배포용 manaifast 관리 권장 
+# 데모 소스와 다른 github repository에 k8s배포용 manifest 관리 권장 
 
 o argocd 홈  >  Settings > Repositories > connect REPO
 o VIA HTTPS 선택
@@ -327,6 +326,7 @@ o project: default
 o Repository URL : https://github.com/yeongdeokcho/edu.git
 o Username : 각 개인 계정
 o Password : github PAT (zz-github.md 참조)
+
 ```
 ![github PAT](/lecture8/img/letcure8-cicd-github-pat.png)
 ![argocd connect](/lecture8/img/lecture8-cicd-argo-conn.png)

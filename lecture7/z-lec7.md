@@ -30,6 +30,7 @@ kubectl get nodes --show-labels | grep db
 ```
 
 # 2. nodeSelector 적용 nginx 배포
+- nodeSelector.yaml
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -66,6 +67,8 @@ kubectl apply -f nodeSelector.yaml
 kubectl get pod -o wide
 
 kubectl delete -f nodeSelector.yaml
+
+# worker02 노드에서 web 라벨 삭제 후 다시 배포
 kubectl label nodes worker02   web-
 kubectl get nodes --show-labels | grep web
 kubectl apply -f nodeSelector.yaml
@@ -76,9 +79,17 @@ kubectl delete -f nodeSelector.yaml
 ```
 
 # 3. nodeAffinity
+nodeAffinity는 두 가지 유형으로 구성됩니다
+
+1.	requiredDuringSchedulingIgnoredDuringExecution 
+    : 필수 조건으로, 이 조건을 만족하는 노드에만 스케줄링됩니다.   
+
+2.	preferredDuringSchedulingIgnoredDuringExecution 
+    : 우선순위를 지정하는 조건으로, 만족하는 노드가 있으면 그곳에 스케줄링되지만 만족하지 않아도 다른 노드에 스케줄링될 수 있습니다.
 
 ## 3.1 requiredDuringSchedulingIgnoredDuringExecution
 - Affinity 매핑 조건 web: "true"
+- nodeRequireAffinity.yaml
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -177,6 +188,7 @@ kubectl delete -f  nodePreferAffinity.yaml
 ```
 
 # 4. podAffinity
+- nginx-deploy.yaml
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -211,6 +223,43 @@ spec:
               containerPort: 80
 
 ```
+- podAffinity.yaml
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+    security: S2
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+        security: S2
+    spec:
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: security
+                    operator: In
+                    values:
+                      - S2
+              topologyKey: kubernetes.io/hostname
+      containers:
+        - name: nginx
+          image: nginx:1.17
+          ports:
+            - name: http
+              containerPort: 80
+```
 ```sh 
 kubectl label nodes worker02 web=true
 kubectl get node --show-labels | grep web
@@ -225,8 +274,12 @@ kubectl label pods nginx-765cbd9ff8-qsn75 security=S3
 
 kubectl get pod --show-labels
 
-## security=S2
-kubectl apply -f podAffinity.yaml   
+# 시나리오 설명
+# 1. 'security: S2' 라벨을 가진 파드 하나가 아무 노드에 생성됨
+# 2. podAffinity에 따라 이후 노드는 동일한 'security: S2' 라벨을 가진 pod가 존재하는 노드에 스케줄링되도록 요구
+# 3. 결과적으로 4개의 파드가 모두 동일한 노드에 스케줄링됨
+kubectl apply -f podAffinity.yaml
+
 ## 확장해도 같은 pod의 위치에 배치됨
 kubectl scale --current-replicas=4 --replicas=5 deployment/nginx
 ## 삭제
@@ -234,7 +287,7 @@ kubectl delete -f podAffinity.yaml
 ```
 
 # 5. podAntiAffinity
-
+- podAntiAffinity.yaml
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -293,9 +346,9 @@ kubectl scale --current-replicas=3 --replicas=2 deployment/nginx
 kubectl set image deployment/nginx nginx=nginx:1.18
 ## pending 발생 
 ```
-# 5.1 podAntiAffinity
-- maxUnavailable 설정으로 제어
-
+## 5.1 maxUnavailable 설정으로 제어
+- podAntiAffinity는 특정 Pod들이 다른 Pod들과 동일한 노드에 배치되지 않도록 하는 정책을 정의
+- podAntiAffinity2.yaml
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -309,7 +362,7 @@ spec:
     matchLabels:
       app: nginx
   strategy:
-    rollingUpdate:
+    rollingUpdate:               # rollingUpdate 동안
       maxUnavailable: 50%        # 동시에 삭제되는 pod 비율 or 개수 설정(default : 25%)
       maxSurge: 25%              # 동시에 생성되는 pod 비율 or 개수 설정(default : 25%)
   template:
@@ -350,6 +403,7 @@ kubectl set image deployment/nginx nginx=nginx:1.19
 ```
 
 ## 5.2 maxSurge 설정으로 제어
+- podAntiAffinity3.yaml
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -414,6 +468,7 @@ kubectl delete -f podAntiAffinity3.yaml
   - NoExecute: Toleration이 없으면 이미 실행 중인 Pod도 제거됨
 - Toleration : Pod에 설정되며, 특정 Taint를 "허용"하도록 구성함
 
+- nginx-deploy-toleration.yaml
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -502,6 +557,7 @@ kubectl label node worker02 nodename- web- db-
 
 # 7. Blue & Green 배포
 ## 7.1 Blue : 현재 운영 버전
+- nginx-deploy-blue.yaml
 ```yaml
 
 apiVersion: v1
@@ -599,6 +655,7 @@ kubectl get service nginx-service
   - http://nginx.211.253.25.128.sslip.io
   
 ## 7.2 Green : 신규 버전
+- nginx-deploy-green.yaml
 ```yaml
 apiVersion: v1
 kind: ConfigMap

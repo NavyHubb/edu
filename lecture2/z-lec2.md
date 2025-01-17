@@ -17,6 +17,7 @@ kubectl delete -f deploy.yaml
 
 ## 서비스용 배포 
 kubectl apply -f deploy.yaml
+
 ```
 ## 2. clusterIP
 - clusterip-svc.yaml
@@ -33,6 +34,7 @@ spec:
       port: 80
       targetPort: 80
   type: ClusterIP
+
 ```
 ```sh
 
@@ -43,7 +45,7 @@ kubectl apply -f clusterip-svc.yaml
 kubectl get service
 kubectl get svc
 
-## 가상의 서비스 ip가 생성
+## 가상의 서비스 ip가 생성되었다 
 #root@master01:~/kubernetes/lecture2# kubectl get svc
 #NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
 #kubernetes   ClusterIP   10.43.0.1    <none>        443/TCP   9d
@@ -53,10 +55,10 @@ kubectl get svc
 ## master01에서 다음과 같이 cluster-ip로  조회가 가능해진다 
 curl http://10.43.229.98
 
-## 서비스가 로드밸렁스 하는지 확인해 본다 (3개 에 모두 적용)
+## 서비스가 로드밸런스 하는지 확인해 본다 (3개 에 모두 적용)
 ## Master Node에서 실행
 ## nginx 3개 pod에 index.html 파일 생성해 LB 동작하는지 확인  
-### k9s에서 진행하는것을 추천
+### k9s에서 진행하는것을 추천(해당 pod에서 s키를 눌러 쉘 접속)
 kubectl get pods
 kubectl  exec -it nginx-deployment-678c6b9b69-8s247  -- bash
 
@@ -102,8 +104,9 @@ spec:
       port: 80
       targetPort: 80
   type: NodePort
+
 ```
-```sh
+```bash
 
 kubectl apply -f nodeport-svc.yaml
 
@@ -176,7 +179,7 @@ kubectl apply -f loadbalancer-svc.yaml
 ```
 
 ## externalName
-google로 테스트
+- google로 테스트
 
 - external-svc.yaml
 ```yaml
@@ -219,5 +222,6 @@ kubectl delete -f loadbalancer-svc.yaml
 kubectl delete -f deploy.yaml
 kubectl delete -f external-svc.yaml
 kubectl delete -f nodeport-svc.yaml
-kubectl delete -fclusterip-svc.yaml
+kubectl delete -f clusterip-svc.yaml
+
 ```

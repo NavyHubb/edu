@@ -7,8 +7,13 @@
 # git clone https://github.com/yeongdeokcho/edu.git
 cd  ~/edu/lecture6
 ```
+볼륨을 사용하면 컨테이너를 재시작하더라도 데이터를 유지할 수 있습니다.    
+볼륨 플러그인의 한 종류인 emptyDir과 hostPath는 내부 호스트의 디스크를 사용하는 볼륨입니다.
 
 # 1. emptyDir
+emptyDir은 Pod가 실행되는 호스트의 디스크를 임시로 컨테이너에 볼륨으로 할당해서 사용하는 방법입니다.
+
+- emptydir-vol.yaml
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -82,6 +87,10 @@ kubectl delete -f emptydir-vol.yaml
 ```
 
 # 2. hostPath
+hostPath는 파드가 실행된 호스트의 파일이나 디렉터리를 Pod에 마운트합니다.    
+emptyDir이 단순히 컨테이너를 재시작했을 때 데이터를 보존하는 역할이라면 hostPath는 파드를 재시작했을 때도 호스트에 데이터가 남습니다.   
+
+- hostpath-vol.yaml
 ```yaml
 apiVersion: v1
 kind: Pod
@@ -163,6 +172,7 @@ manual   kubernetes.io/no-provisioner   Delete          WaitForFirstConsumer   f
 ```
 
 ## 3.3 pv
+- task-pv-pv.yaml
 ```yaml
 apiVersion: v1
 kind: PersistentVolume
@@ -190,6 +200,7 @@ NAME             CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM   
 task-pv-volume   100Mi      RWO            Retain           Available           manual         <unset>                          40s
 ```
 ## 3.4 pvc
+- task-pv-pvc.yaml
 ```yaml
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -201,7 +212,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 300Mi
+      storage: 100Mi  # pv의 스토리지 크기보다 큰 용량을 요청할 수 없다
 ```
 ```sh
 
@@ -212,6 +223,14 @@ kubectl get pvc
 ## pv 조회한다  status가 Available 상태 확인 
 kubectl get pv -n default
 ```
+### * PV와 PVC의 스토리지 크기에 대하여
+- PV ≥ PVC 조건을 만족시켜야 합니다.
+- PV가 있고 그의 용량에 맞게 PVC의 용량를 '요청'하여 할당받는 것이므로, PVC의 요청 용량은 PV의 용량을 초과할 수 없습니다.
+- PV < PVC 인 경우,
+  - PVC가 요청하는 크기를 PV가 충족하지 못하기 때문에 바인딩되지 않습니다.
+- PV > PVC 인 경우,
+  - PVC 요청 크기만큼 바인딩되며, PV의 잔여 용량은 다른 PVC에 할당될 수 없습니다. 
+  - 따라서 스토리지 용량 낭비를 최소화하기 위해 PVC 요청 크기를 기반으로 PV를 설계하는 것이 중요합니다.
 
 ## 3.5 pod 배포
 ```yaml
